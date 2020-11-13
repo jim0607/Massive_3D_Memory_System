@@ -19,8 +19,15 @@ r = np.random.standard_normal(np.prod(n)).reshape(n)  # abs of R(x,y) with rando
 
 
 """
-initialize magnetization
+initialize magnetization - m is a 4D list
+the first dimension is n_x on the grid;
+the second dimension is n_y on the grid;
+the third dimension is n_z on the grid;
+the fourth dimension refers to (m_x, m_y, m_x])
 """
+
 m = np.zeros(n + (3,))
 m[1:-1, :, :, 0] = 1.0
 m[(-1, 0), :, :, 1] = 1.0
+# print(len(m), len(m[0]), len(m[0][0]), len(m[0][0][0]))
+# print(m)

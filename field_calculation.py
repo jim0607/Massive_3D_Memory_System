@@ -1,6 +1,6 @@
 import numpy as np
 from demag_tensor import f_n_demag, m_pad
-from constant import n, dx, Ms, A, mu0, Hs, Mpd3fe
+from constant import n, dx, Ms, A, mu0, Hs, Mpd3fe, Ku_1, Ku_2
 from initialize_system import e, r
 
 
@@ -25,6 +25,21 @@ def h_ex(m):
     return h_ex
 
 
+# anisotropy field
+# Ding, Jinjun, et al. "Nanometer-thick yttrium iron garnet films with perpendicular anisotropy and low damping."
+# Physical Review Applied 14.1 (2020): 014017.
+def uniaxial_anisotropy(m):
+    h_anisotropy = 2 * Ku_1 / Ms
+
+    return h_anisotropy
+
+
+def uniaxial_anisotropy_2(m):
+    h_anisotropy_1 = 2 * Ku_1 / Ms
+    h_anisotropy_2 = 2 * Ku_2 / Ms
+
+    return h_anisotropy_1 + h_anisotropy_2
+
 # IMS
 def h_IMS(m):
     e_dot_m = (e * m).sum(axis = 3)  # scalar product of e*m
@@ -36,4 +51,9 @@ def h_IMS(m):
 
 # compute effective field
 def h_eff(m):
-    return (h_demag(m) * Ms + 2 * A / (mu0 * Ms) * h_ex(m) + h_IMS(m) * Hs) * (Ms / Mpd3fe)
+    initialized_field = h_IMS(m) * Hs * (Ms / Mpd3fe)
+    demag_field = (h_demag(m) * Ms) * (Ms / Mpd3fe)
+    exchange_field = 2 * A / (mu0 * Ms) * h_ex(m) * (Ms / Mpd3fe)
+    anisotropy_field = uniaxial_anisotropy_2(m) * (Ms / Mpd3fe)
+
+    return initialized_field + demag_field + exchange_field + anisotropy_field

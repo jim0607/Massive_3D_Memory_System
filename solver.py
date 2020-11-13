@@ -1,6 +1,11 @@
-from constant import gamma, alpha, pi, atan2, err
+from constant import gamma, alpha, pi, atan2, eps
 import numpy as np
 from field_calculation import h_eff
+import os
+
+curr_folder = os.getcwd()
+curr_folder = os.path.join(curr_folder, "data")
+print(curr_folder)
 
 
 # compute llg right side
@@ -30,17 +35,46 @@ def llg_rk4(m, dt, h_zee=0.0):
     return m
 
 
+def cost_func(m_curr, m_prev):
+    """
+    @type m_curr: current prediction
+    @type m_prev: last prediction
+
+    The cost_func is defined as the max of (dm_curr - dm_prev for each spin in the 3D system)
+    """
+    n_x = len(m_curr)
+    n_y = len(m_curr[0])
+    n_z = len(m_curr[0][0])
+    max_diff = float("-inf")
+    for x in range(n_x):
+        for y in range(n_y):
+            for z in range(n_z):
+                diff_sq = 0
+                for i in range(3):
+                    diff_sq += (m_curr[x][y][z][i] - m_prev[x][y][z][i]) ** 2
+                diff = np.sqrt(diff_sq)
+                max_diff = max(diff, max_diff)
+
+    return max_diff
+
+
 # relaxing
 def relax(m, dt, h_zee=0.0):
     m0 = np.copy(m)
     llg_rk4(m, dt, h_zee)
-    deg = ((180 / pi) * atan2(np.sqrt(((m - m0) ** 2).sum(3)).max(), np.sqrt(((m0) ** 2).sum(3)).max()))
-    dm = np.sqrt(((m - m0) ** 2).sum(3)).max()
+    # deg = ((180 / pi) * atan2(np.sqrt(((m - m0) ** 2).sum(3)).max(), np.sqrt(((m0) ** 2).sum(3)).max()))
+    cost = cost_func(m, m0)
+    costs = []
+    costs.append(cost)
 
-    while dm > err:
+    while cost > eps:
         m0 = np.copy(m)
         llg_rk4(m, dt, h_zee)
-        deg = ((180 / pi) * atan2(np.sqrt(((m - m0) ** 2).sum(3)).max(), np.sqrt(((m0) ** 2).sum(3)).max()))
-        dm = np.sqrt(((m - m0) ** 2).sum(3)).max()
+        # deg = ((180 / pi) * atan2(np.sqrt(((m - m0) ** 2).sum(3)).max(), np.sqrt(((m0) ** 2).sum(3)).max()))
+        cost = cost_func(m, m0)
+        costs.append(cost)
+        # dm = np.sqrt(((m - m0) ** 2).sum(3)).max()
 
-    print "deg = %e, dm = %e" % (deg, dm)
+    np.savetxt(curr_folder + "\costs_vs_time.dat", costs)
+
+    print "cost = %e" % (cost)

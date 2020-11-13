@@ -2,7 +2,7 @@ from math import asinh, atan, sqrt, pi, sin, atan2
 import numpy as np
 from constant import n, dx
 
-# a very small number
+# a very small number to avoid divide by zero
 eps = 1e-18
 
 

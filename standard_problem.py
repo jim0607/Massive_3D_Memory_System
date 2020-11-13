@@ -17,6 +17,9 @@ plot_m(m)
 # switch
 alpha = 0.02
 dt = 1e-12
+
+# numpy.tile construct an array by repeating A the number of times given by reps
+# numpy.prod return the product of array elements over a given axis
 h_zee = np.tile([-24.6e-3 / mu0, +4.3e-3 / mu0, 0.0], np.prod(n)).reshape(m.shape)
 
 

@@ -24,4 +24,4 @@ for k in H:
     data.append([mx, my, mz, k])
     i += 1
 
-np.savetxt(curr_folder + "Hx_sweep.dat", data)
+np.savetxt(curr_folder + "\Hx_sweep.dat", data)
