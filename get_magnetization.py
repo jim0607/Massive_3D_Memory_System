@@ -1,23 +1,44 @@
 import numpy as np
 
-# <m_x>
-def m_x(m):
-    return np.mean(m[:, :, :, 0])
+
+def mean_x(magnetization):
+    """
+    compute the mean of magnetization in the x direction
+
+    @type magnetization: object
+    """
+    return np.mean(magnetization[:, :, :, 0])
 
 
 # <m_y>
-def m_y(m):
-    return np.mean(m[:, :, :, 1])
+def mean_y(magnetization):
+    """
+    compute the mean of magnetization in the y direction
+
+    @type magnetization: object
+    """
+    return np.mean(magnetization[:, :, :, 1])
 
 
 # <m_z>
-def m_z(m):
-    return np.mean(m[:, :, :, 2])
+def mean_z(magnetization):
+    """
+    compute the mean of magnetization in the z direction
+
+    @type magnetization: object
+    """
+    return np.mean(magnetization[:, :, :, 2])
 
 
-def m_mean(m):
-    m_1 = m_x(m)
-    m_2 = m_y(m)
-    m_3 = m_z(m)
-    m_mean = np.sqrt(m_1 * m_1 + m_2 * m_2 + m_3 * m_3)
-    return m_mean
+def mean_magnetization(magnetization):
+    """
+    compute the mean of magnetization in the x, y and z direction
+
+    @type magnetization: object
+    """
+    m_1 = mean_x(magnetization)
+    m_2 = mean_y(magnetization)
+    m_3 = mean_z(magnetization)
+    mean_m = np.sqrt(m_1 * m_1 + m_2 * m_2 + m_3 * m_3)
+
+    return mean_m

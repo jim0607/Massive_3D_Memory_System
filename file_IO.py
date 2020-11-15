@@ -1,18 +1,37 @@
 import numpy as np
-from constant import n
+from constant import system_size
 
 
-def save_m(m, f):
-    np.savetxt(f, (m[:, :, :, 0].flatten(), m[:, :, :, 1].flatten(), m[:, :, :, 2].flatten()))
+def save_magnetization(magnetization, file):
+    """
+    save magnetization to file
+
+    @type magnetization: object
+    """
+    np.savetxt(file, (magnetization[:, :, :, 0].flatten(), magnetization[:, :, :, 1].flatten(), magnetization[:, :, :, 2].flatten()))
 
 
-def load_m(f):
-    k = np.loadtxt(f)
-    j = np.zeros(n + (3,))
-    for i in range(3): j[:, :, :, i] = k[i, :].reshape(j[:, :, :, i].shape)
-    return j
+def load_magnetization(file):
+    """
+    load magnetization from the imput file
+
+    @type file: object
+    """
+    mag_file = np.loadtxt(file)
+    magnetization = np.zeros(system_size + (3,))
+
+    for i in range(3):
+        magnetization[:, :, :, i] = mag_file[i, :].reshape(magnetization[:, :, :, i].shape)
+
+    return magnetization
 
 
-def load_H_sweep(f):
-    n = np.loadtxt(f)
+def load_field_sweep(file):
+    """
+    load field distribution from input file
+
+    @type file: object
+    """
+    n = np.loadtxt(file)
+
     return n[:, 0:3], n[:, 3]

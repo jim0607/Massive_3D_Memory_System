@@ -1,7 +1,7 @@
 import numpy as np
 from demag_tensor import f_n_demag, m_pad
-from constant import n, dx, Ms, A, mu0, Hs, Mpd3fe, Ku_1, Ku_2
-from initialize_system import e, r
+from constant import system_size, mesh, saturation_magnetization, exchange_coeff, mu0, constant_fiend, Mpd3fe, anisotropy_coeff_ku_1, anisotropy_coeff_ku_2
+from initialize_system import rand_vec, r_xy
 from initialize_system import gen_rand_vecs
 
 
@@ -31,7 +31,7 @@ class DMI:
 
                        where L are Lifshitz invariants. This DMI is found in
                        systems with their interface in contact with a heavy
-                       metal (larger spin orbit coupling). A finite differences
+                       metal (larger spin orbit coupling). exchange_coeff finite differences
                        discretisation turns this term into the equivalent
                        atomistic interfacial DMI term (with a different sign).
                        Since this DMI type is defined for interfacial systems,
@@ -48,8 +48,8 @@ class DMI:
                        known as anti-skyrmions are stabilised with this
                        DMI type
 
-        custom      :: Pass n number of DMI constants as the main argument and
-                       specify a dmi_vector array of length 18 * n. This array
+        custom      :: Pass system_size number of DMI constants as the main argument and
+                       specify a dmi_vector array of length 18 * system_size. This array
                        has the dmi vector components for every NN in the order
 
                         [D1x(-x) D1y(-x) D1z(-x) D1x(+x) D1y(+x) ... D1z(+z),
@@ -62,7 +62,7 @@ class DMI:
                               ---  ->     ->              ---  ->     ->
                      2 * D1   \    D1_i X m_i     2 * D2  \    D2_i X m_i
           H_DMI = -  ------   /    ----------  -  ------  /    ---------- - ...
-                     mu0 Ms   ---    2 dx_i       mu0 Ms  ---    2 dx_i
+                     mu0 saturation_magnetization   ---    2 dx_i       mu0 saturation_magnetization  ---    2 dx_i
                               NN                          NN
 
                        where dx_i is the discretisation in the i-direction, m_i
@@ -91,14 +91,14 @@ class DMI:
                                              /       ->           ->   \
                            ->       - 2  D  |  ^     dm     ^     dm    |
                            H_DMI =    ----  |  y  X  --  -  x  X  --    |
-                                     mu0 Ms  \       dx           dy   /
+                                     mu0 saturation_magnetization  \       mesh           dy   /
 
                       After discretising the derivatives, you obtain
 
                            ->                /  ->   ->        ->   ->
                            H_DMI = - 2 D    |  -y  X m(-x)     y  X m(+x)
                                      ---    |  ----------- +  -----------
-                                    mu0 Ms   \    2 dx           2 dx
+                                    mu0 saturation_magnetization   \    2 mesh           2 mesh
 
                                                  ->   ->         ->   ->    \
                                                  x  X m(-y)     -x  X m(+y)  |
@@ -125,14 +125,14 @@ class DMI:
 
     ARGUMENTS: ----------------------------------------------------------------
 
-    D       :: DMI vector norm which can be specified as an int, float, (X * n)
+    D       :: DMI vector norm which can be specified as an int, float, (X * system_size)
                or spatially dependent scalar field function. The units are
                Joules / ( meter **2 ).
 
                int, float: D will have the same magnitude for every NN of the
                spins at every mesh node, given by this magnitude
 
-               (n) array or list: D for every DMI constant
+               (system_size) array or list: D for every DMI constant
 
     OPTIONAL ARGUMENTS: -------------------------------------------------------
 
@@ -265,8 +265,8 @@ class DMI:
         else:
             m = self.spin
 
-        self.field = - 2 * m * sum([1 / x ** 2 for x in dx])
+        self.field = - 2 * m * sum([1 / x ** 2 for x in mesh])
         for i in range(6):  # we adopt six-neighbor model for exchange coupling calculation
-            self.field += np.repeat(m, 1 if n[i % 3] == 1 else [i / 3 * 2] + [1] * (n[i % 3] - 2) + [2 - i / 3 * 2], axis = i % 3) / dx[i % 3] ** 2
+            self.field += np.repeat(m, 1 if system_size[i % 3] == 1 else [i / 3 * 2] + [1] * (system_size[i % 3] - 2) + [2 - i / 3 * 2], axis = i % 3) / mesh[i % 3] ** 2
         # print 'exchange field computed'
         return self.field

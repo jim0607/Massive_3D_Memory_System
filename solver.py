@@ -1,80 +1,114 @@
-from constant import gamma, alpha, pi, atan2, eps
+from constant import gamma, damping_constant, pi, atan2, eps
 import numpy as np
-from field_calculation import h_eff
+from field_calculation import calculate_effective_field
 import os
 
 curr_folder = os.getcwd()
 curr_folder = os.path.join(curr_folder, "data")
-print(curr_folder)
 
 
-# compute llg right side
-def llg_rhs(m, h_eff, h_zee):
-    h = h_eff(m) + h_zee
-    llg_right_hand_side = - gamma / (1 + alpha ** 2) * np.cross(m, h) - alpha * gamma / (1 + alpha ** 2) * np.cross(m, np.cross(m, h))
+def llg_equation_rhs(mangetization, calculate_effective_field, zeeman_field):
+    """
+    compute right side of the Landau Lifshitz Gilbert equation
+    https://en.wikipedia.org/wiki/Landau%E2%80%93Lifshitz%E2%80%93Gilbert_equation
+
+    @param zeeman_field:
+    @param calculate_effective_field:
+    @type mangetization: object
+    """
+    total_field = calculate_effective_field(mangetization) + zeeman_field
+    llg_right_hand_side = - gamma / (1 + damping_constant ** 2) * np.cross(mangetization, total_field) - damping_constant * gamma / (1 + damping_constant ** 2) * np.cross(mangetization, np.cross(mangetization, total_field))
+
     return llg_right_hand_side
 
 
 # compute llg step using Euler method
-def llg_eu(m, dt, h_zee=0.0):
-    dm_dt = llg_rhs(m, h_eff, h_zee)
-    print ("error = %g" % (dm_dt * dt).mean())
-    m += dt * dm_dt
-    return m / np.repeat(np.sqrt((m * m).sum(axis = 3)), 3).reshape(m.shape)
+def llg_euler_evolver(magnetization, dt, zeeman_field=0.0):
+    """
+    In mathematics and computational science, the Euler method (also called forward Euler method)
+    is a first order numerical procedure for solving ordinary differential equations (ODEs) with a given initial value.
+    It is the most basic explicit method for numerical integration of ordinary differential equations and is the simplest Runge Kutta method.
+    The Euler method is named after Leonhard Euler, who treated it in his book Institutionum calculi integralis (published 1768 1870)
+    https://en.wikipedia.org/wiki/Euler_method
+
+    @type magnetization: object
+    """
+    dm_dt = llg_equation_rhs(magnetization, calculate_effective_field, zeeman_field)
+    # print ("error = %g" % (dm_dt * dt).mean())
+    magnetization += dt * dm_dt
+
+    return magnetization / np.repeat(np.sqrt((magnetization * magnetization).sum(axis = 3)), 3).reshape(magnetization.shape)
 
 
 # compute llg step using RK4
-def llg_rk4(m, dt, h_zee=0.0):
-    k1 = llg_rhs(m, h_eff, h_zee)
-    k2 = llg_rhs(m + (dt / 2.0) * k1, h_eff, h_zee)
-    k3 = llg_rhs(m + (dt / 2.0) * k2, h_eff, h_zee)
-    k4 = llg_rhs(m + dt * k3, h_eff, h_zee)
+def llg_rk4_evolver(magnetization, dt, zeeman_field=0.0):
+    """
+    In numerical analysis, the Rung Kutta methods are a family of implicit and explicit iterative methods,
+    which include the well-known routine called the Euler Method,
+    used in temporal discretization for the approximate solutions of ordinary differential equations.
+    These methods were developed around 1900 by the German mathematicians Carl Runge and Wilhelm Kutta.
+    The most widely known member of the Runge Kutta family is generally referred to as "RK4",
+    the "classic Runge Kutta method" or simply as "the Runge Kutta method".
+    https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+
+    @type magnetization: object
+    """
+    k1 = llg_equation_rhs(magnetization, calculate_effective_field, zeeman_field)
+    k2 = llg_equation_rhs(magnetization + (dt / 2.0) * k1, calculate_effective_field, zeeman_field)
+    k3 = llg_equation_rhs(magnetization + (dt / 2.0) * k2, calculate_effective_field, zeeman_field)
+    k4 = llg_equation_rhs(magnetization + dt * k3, calculate_effective_field, zeeman_field)
     dm_dt = (1.0 / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
-    m += dt * dm_dt
-    m = m / np.repeat(np.sqrt((m * m).sum(axis = 3)), 3).reshape(m.shape)
-    return m
+    magnetization += dt * dm_dt
+    magnetization = magnetization / np.repeat(np.sqrt((magnetization * magnetization).sum(axis = 3)), 3).reshape(magnetization.shape)
+
+    return magnetization
 
 
-def cost_func(m_curr, m_prev):
+def cost_func(magnetization_curr, magnetization_prev):
     """
-    @type m_curr: current prediction
-    @type m_prev: last prediction
-
     The cost_func is defined as the max of (dm_curr - dm_prev for each spin in the 3D system)
+
+    @type magnetization_curr: current prediction
+    @type magnetization_prev: last prediction
     """
-    n_x = len(m_curr)
-    n_y = len(m_curr[0])
-    n_z = len(m_curr[0][0])
+    n_x = len(magnetization_curr)
+    n_y = len(magnetization_curr[0])
+    n_z = len(magnetization_curr[0][0])
     max_diff = float("-inf")
     for x in range(n_x):
         for y in range(n_y):
             for z in range(n_z):
                 diff_sq = 0
                 for i in range(3):
-                    diff_sq += (m_curr[x][y][z][i] - m_prev[x][y][z][i]) ** 2
+                    diff_sq += (magnetization_curr[x][y][z][i] - magnetization_prev[x][y][z][i]) ** 2
                 diff = np.sqrt(diff_sq)
                 max_diff = max(diff, max_diff)
 
     return max_diff
 
 
-# relaxing
-def relax(m, dt, h_zee=0.0):
-    m0 = np.copy(m)
-    llg_rk4(m, dt, h_zee)
-    # deg = ((180 / pi) * atan2(np.sqrt(((m - m0) ** 2).sum(3)).max(), np.sqrt(((m0) ** 2).sum(3)).max()))
-    cost = cost_func(m, m0)
+def gradient_descent(magnetization, dt, zeeman_field=0.0):
+    """
+    gradient descent method to compute the equilibrium state of the 3D system
+
+    @type magnetization: object
+    """
+    magnetization_prev = np.copy(magnetization)
+    llg_rk4_evolver(magnetization, dt, zeeman_field)
+
+    cost = cost_func(magnetization, magnetization_prev)
+
     costs = []
     costs.append(cost)
 
     while cost > eps:
-        m0 = np.copy(m)
-        llg_rk4(m, dt, h_zee)
-        # deg = ((180 / pi) * atan2(np.sqrt(((m - m0) ** 2).sum(3)).max(), np.sqrt(((m0) ** 2).sum(3)).max()))
-        cost = cost_func(m, m0)
+        magnetization_prev = np.copy(magnetization)
+        llg_rk4_evolver(magnetization, dt, zeeman_field)
+
+        cost = cost_func(magnetization, magnetization_prev)
+
         costs.append(cost)
-        # dm = np.sqrt(((m - m0) ** 2).sum(3)).max()
 
     np.savetxt(curr_folder + "\costs_vs_time.dat", costs)
 
-    print "cost = %e" % (cost)
+    # print "cost = %e" % (cost)

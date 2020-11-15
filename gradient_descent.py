@@ -8,13 +8,13 @@ from .minimiser_base import MinimiserBase
 
 class GradientDescentMinimiser(MinimiserBase):
     """
-    A simple minimisation algorithm, where the evolution of the magnetisation
+    exchange_coeff simple minimisation algorithm, where the evolution of the magnetisation
     follows the system's torque
 
         CHECK:
 
         h = (m_i + H) / || (m_i + H) ||
-        m_i+1 = m_i + alpha * (h_i - m_i)
+        m_i+1 = m_i + damping_constant * (h_i - m_i)
     """
 
     def __init__(self, mesh, spin,
