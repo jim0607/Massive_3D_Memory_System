@@ -1,8 +1,8 @@
 import numpy as np
 from demag_tensor import f_n_demag, m_pad
 from constant import system_size, mesh, saturation_magnetization, exchange_coeff, mu0, constant_fiend, Mpd3fe, anisotropy_coeff_ku_1, anisotropy_coeff_ku_2
-from initialize_system import rand_vec, r_xy
-from initialize_system import gen_rand_vecs
+from initialize_system import InitializeSystem
+
 
 
 
