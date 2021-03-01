@@ -77,8 +77,4 @@ class UniaxialAnisotropy4(Energy):
                                              self.nz)
 
 
-
-
-
         return self.field
-
